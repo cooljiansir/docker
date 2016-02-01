@@ -387,17 +387,19 @@ func (p *v2Pusher) pushV2Layer(bs distribution.BlobService, l layer.Layer) (dige
 		Action:    "Pushing",
 	})
 
-	compressedReader := compress(reader)
+	//for fast push we don't compress before dedup
+	//compressedReader := compress(reader)
 
-	digester := digest.Canonical.New()
-	tee := io.TeeReader(compressedReader, digester.Hash())
+        digester := digest.Canonical.New()
+        //tee := io.TeeReader(compressedReader, digester.Hash())
+        tee := io.TeeReader(reader, digester.Hash())
 
-	out.Write(p.sf.FormatProgress(displayID, "Pushing", nil))
-	nn, err := layerUpload.ReadFrom(tee)
-	compressedReader.Close()
-	if err != nil {
-		return "", err
-	}
+        out.Write(p.sf.FormatProgress(displayID, "Pushing", nil))
+        nn, err := layerUpload.ReadFrom(tee)
+        //compressedReader.Close()
+        if err != nil {
+                return "", err
+        }
 
 	dgst := digester.Digest()
 	if _, err := layerUpload.Commit(context.Background(), distribution.Descriptor{Digest: dgst}); err != nil {

@@ -443,6 +443,7 @@ func (bs *blobs) Create(ctx context.Context) (distribution.BlobWriter, error) {
 	if SuccessStatus(resp.StatusCode) {
 		// TODO(dmcgowan): Check for invalid UUID
 		uuid := resp.Header.Get("Docker-Upload-UUID")
+		pushHashLocation := resp.Header.Get("Fast-Push-Hash-Location")
 		location, err := sanitizeLocation(resp.Header.Get("Location"), u)
 		if err != nil {
 			return nil, err
@@ -454,6 +455,7 @@ func (bs *blobs) Create(ctx context.Context) (distribution.BlobWriter, error) {
 			uuid:      uuid,
 			startedAt: time.Now(),
 			location:  location,
+			pushHashLocation:       pushHashLocation,
 		}, nil
 	}
 	return nil, handleErrorResponse(resp)

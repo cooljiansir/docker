@@ -11,6 +11,8 @@ import (
 
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
+
+	"github.com/cooljiansir/fastpush/client"
 )
 
 type httpBlobUpload struct {
@@ -23,6 +25,8 @@ type httpBlobUpload struct {
 	location string // always the last value of the location header.
 	offset   int64
 	closed   bool
+
+	pushHashLocation string //Fast push location request for hash
 }
 
 func (hbu *httpBlobUpload) Reader() (io.ReadCloser, error) {
@@ -37,7 +41,16 @@ func (hbu *httpBlobUpload) handleErrorResponse(resp *http.Response) error {
 }
 
 func (hbu *httpBlobUpload) ReadFrom(r io.Reader) (n int64, err error) {
-	req, err := http.NewRequest("PATCH", hbu.location, ioutil.NopCloser(r))
+	var req *http.Request
+	//fast push
+	if hbu.pushHashLocation != ""{
+		clt := client.NewClient(r,hbu.pushHashLocation)
+		clt.Start()
+		req, err = http.NewRequest("PATCH", hbu.location, clt)
+		req.Header.Set("Fast-Push","V1")
+	}else{
+		req, err = http.NewRequest("PATCH", hbu.location, ioutil.NopCloser(r))
+	}
 	if err != nil {
 		return 0, err
 	}
@@ -70,6 +83,7 @@ func (hbu *httpBlobUpload) ReadFrom(r io.Reader) (n int64, err error) {
 }
 
 func (hbu *httpBlobUpload) Write(p []byte) (n int, err error) {
+	fmt.Println("\n\n\n\n\n\n\n\n\n\n[DEBUG]calling Write \n\n\n\n\n")
 	req, err := http.NewRequest("PATCH", hbu.location, bytes.NewReader(p))
 	if err != nil {
 		return 0, err
