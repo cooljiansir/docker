@@ -43,8 +43,9 @@ func (hbu *httpBlobUpload) handleErrorResponse(resp *http.Response) error {
 func (hbu *httpBlobUpload) ReadFrom(r io.Reader) (n int64, err error) {
 	var req *http.Request
 	//fast push
+	var clt *client.Client
 	if hbu.pushHashLocation != ""{
-		clt := client.NewClient(r,hbu.pushHashLocation)
+		clt = client.NewClient(r,hbu.pushHashLocation)
 		clt.Start()
 		req, err = http.NewRequest("PATCH", hbu.location, clt)
 		req.Header.Set("Fast-Push","V1")
@@ -61,6 +62,11 @@ func (hbu *httpBlobUpload) ReadFrom(r io.Reader) (n int64, err error) {
 		return 0, err
 	}
 
+	if hbu.pushHashLocation != ""{
+		or := clt.ReaderBytesRead()
+		now := clt.CntBytesRead() + clt.IdxBytesRead()
+		fmt.Printf("origin %d now %d %d%% x%d\n",or,now,now*100/or,or/now)
+	}
 	if !SuccessStatus(resp.StatusCode) {
 		return 0, hbu.handleErrorResponse(resp)
 	}
